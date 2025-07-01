@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robô de Xadrez com Stockfish</title>
+    <!-- CDN Chessboard.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <!-- Nosso CSS local -->
     <link rel="stylesheet" href="style.css">
-    <script src="stockfish.js"></script>
-    <script src="script.js" defer></script>
+    <!-- CDN Chess.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
+    <!-- CDN Chessboard.js -->
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -31,6 +36,7 @@
                 <button id="analyze">Analisar Posição</button>
                 <button id="lesson">Aula</button>
                 <button id="flip-board">Virar Tabuleiro</button>
+                <button id="undo-move">Desfazer Jogada</button>
             </div>
         </div>
         
@@ -42,5 +48,10 @@
             <div id="lesson-content" class="lesson-content"></div>
         </div>
     </div>
+
+    <!-- Stockfish.js será carregado aqui -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js" integrity="sha512-+1mh6uERHvNNKJlQY0E+8U6wN7YRZeOQykQ9qQn9g/0Ww6YfRk6E5Q9qT4WfKk8V7vY+JgNmzZL3xVZv6ptgA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Nosso JavaScript local -->
+    <script src="script.js"></script>
 </body>
 </html>
