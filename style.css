@@ -57,6 +57,11 @@ button:hover {
     background-color: #2980b9;
 }
 
+button:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+}
+
 #board {
     width: 600px;
     height: 600px;
@@ -84,10 +89,28 @@ button:hover {
 .engine-output {
     font-family: monospace;
     white-space: pre-wrap;
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    padding: 15px;
+    border-radius: 8px;
 }
 
 .lesson-content {
     line-height: 1.6;
+}
+
+.move-history ol {
+    padding-left: 20px;
+}
+
+.move-history li {
+    margin-bottom: 5px;
+    padding: 3px;
+    border-radius: 3px;
+}
+
+.move-history li:nth-child(odd) {
+    background-color: #f0f0f0;
 }
 
 @media (max-width: 768px) {
