@@ -7,11 +7,133 @@
     <!-- CDN Chessboard.js CSS -->
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <!-- Nosso CSS local -->
-    <link rel="stylesheet" href="style.css">
-    <!-- CDN Chess.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
-    <!-- CDN Chessboard.js -->
-    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .controls {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        #board {
+            width: 600px;
+            height: 600px;
+            margin: 0 auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .info-panel {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .move-history, .engine-output, .lesson-content {
+            flex: 1;
+            min-width: 300px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .engine-output {
+            font-family: monospace;
+            white-space: pre-wrap;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .lesson-content {
+            line-height: 1.6;
+        }
+
+        .move-history ol {
+            padding-left: 20px;
+        }
+
+        .move-history li {
+            margin-bottom: 5px;
+            padding: 3px;
+            border-radius: 3px;
+        }
+
+        .move-history li:nth-child(odd) {
+            background-color: #f0f0f0;
+        }
+
+        @media (max-width: 768px) {
+            #board {
+                width: 90vw;
+                height: 90vw;
+            }
+            
+            .controls, .info-panel {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -20,7 +142,7 @@
         <div class="controls">
             <div class="control-group">
                 <label for="elo">Nível (ELO):</label>
-                <input type="range" id="elo" min="800" max="3000" step="100" value="1500">
+                <input type="range" id="elo" min="100" max="4000" step="100" value="1500">
                 <span id="elo-value">1500</span>
             </div>
             
@@ -49,9 +171,308 @@
         </div>
     </div>
 
-    <!-- Stockfish.js será carregado aqui -->
+    <!-- CDN Chess.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
+    <!-- CDN Chessboard.js -->
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <!-- Stockfish.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js" integrity="sha512-+1mh6uERHvNNKJlQY0E+8U6wN7YRZeOQykQ9qQn9g/0Ww6YfRk6E5Q9qT4WfKk8V7vY+JgNmzZL3xVZv6ptgA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <!-- Nosso JavaScript local -->
-    <script src="script.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Configurações iniciais
+            let board = null;
+            let game = new Chess();
+            let stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
+            let elo = 1500;
+            let depth = 15;
+            let playerColor = 'white';
+            let moveHistory = [];
+            let isEngineThinking = false;
+            
+            // Elementos da UI
+            const boardElement = document.getElementById('board');
+            const eloSlider = document.getElementById('elo');
+            const eloValue = document.getElementById('elo-value');
+            const depthSlider = document.getElementById('depth');
+            const depthValue = document.getElementById('depth-value');
+            const newGameBtn = document.getElementById('new-game');
+            const hintBtn = document.getElementById('hint');
+            const analyzeBtn = document.getElementById('analyze');
+            const lessonBtn = document.getElementById('lesson');
+            const flipBoardBtn = document.getElementById('flip-board');
+            const undoMoveBtn = document.getElementById('undo-move');
+            const moveHistoryElement = document.getElementById('move-history');
+            const engineOutputElement = document.getElementById('engine-output');
+            const lessonContentElement = document.getElementById('lesson-content');
+            
+            // Inicialização do Stockfish
+            stockfish.onmessage = (event) => {
+                const message = event.data;
+                
+                if (typeof message === 'string') {
+                    engineOutputElement.textContent += message + '\n';
+                    engineOutputElement.scrollTop = engineOutputElement.scrollHeight;
+                    
+                    if (message.startsWith('bestmove')) {
+                        isEngineThinking = false;
+                        const bestMove = message.split(' ')[1];
+                        if (bestMove && bestMove !== 'none') {
+                            makeEngineMove(bestMove);
+                        }
+                    }
+                }
+            };
+            
+            function initEngine() {
+                stockfish.postMessage('uci');
+                stockfish.postMessage('setoption name Skill Level value 20');
+                stockfish.postMessage('setoption name Contempt value 0');
+                stockfish.postMessage('isready');
+            }
+            
+            // Inicializar o tabuleiro
+            function initBoard() {
+                const config = {
+                    draggable: true,
+                    position: 'start',
+                    onDragStart: onDragStart,
+                    onDrop: onDrop,
+                    onSnapEnd: onSnapEnd,
+                    orientation: playerColor
+                };
+                board = Chessboard('board', config);
+            }
+            
+            // Event listeners
+            eloSlider.addEventListener('input', () => {
+                elo = parseInt(eloSlider.value);
+                eloValue.textContent = elo;
+                updateEngineStrength();
+            });
+            
+            depthSlider.addEventListener('input', () => {
+                depth = parseInt(depthSlider.value);
+                depthValue.textContent = depth;
+            });
+            
+            newGameBtn.addEventListener('click', () => {
+                game.reset();
+                board.start();
+                moveHistory = [];
+                updateMoveHistory();
+                engineOutputElement.textContent = 'Novo jogo iniciado.\n';
+                lessonContentElement.textContent = '';
+                updateUndoButton();
+            });
+            
+            hintBtn.addEventListener('click', () => {
+                if (game.game_over()) return;
+                
+                engineOutputElement.textContent += 'Pedindo dica...\n';
+                stockfish.postMessage('position fen ' + game.fen());
+                stockfish.postMessage('go depth ' + depth);
+            });
+            
+            analyzeBtn.addEventListener('click', () => {
+                engineOutputElement.textContent += 'Analisando posição...\n';
+                stockfish.postMessage('position fen ' + game.fen());
+                stockfish.postMessage('go depth ' + depth);
+            });
+            
+            lessonBtn.addEventListener('click', () => {
+                giveLesson();
+            });
+            
+            flipBoardBtn.addEventListener('click', () => {
+                playerColor = playerColor === 'white' ? 'black' : 'white';
+                board.orientation(playerColor);
+            });
+            
+            undoMoveBtn.addEventListener('click', () => {
+                if (moveHistory.length === 0) return;
+                
+                // Desfaz a última jogada do jogador e do engine
+                game.undo();
+                if (moveHistory.length > 0 && 
+                    ((playerColor === 'white' && game.turn() === 'b') || 
+                     (playerColor === 'black' && game.turn() === 'w'))) {
+                    game.undo();
+                }
+                
+                board.position(game.fen());
+                moveHistory = game.history({verbose: true});
+                updateMoveHistory();
+                updateUndoButton();
+            });
+            
+            // Funções do jogo
+            function onDragStart(source, piece, position, orientation) {
+                if (game.game_over() || isEngineThinking) return false;
+                
+                // Verifica se é a vez do jogador
+                if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                    (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                    return false;
+                }
+            }
+            
+            function onDrop(source, target) {
+                if (isEngineThinking) return 'snapback';
+                
+                // Verifica se o movimento é legal
+                const move = game.move({
+                    from: source,
+                    to: target,
+                    promotion: 'q' // Sempre promove a rainha por padrão
+                });
+                
+                if (move === null) return 'snapback';
+                
+                moveHistory.push(move);
+                updateMoveHistory();
+                updateUndoButton();
+                
+                // Se o jogo acabou, mostra o resultado
+                if (game.game_over()) {
+                    setTimeout(() => {
+                        if (game.in_checkmate()) {
+                            alert('Xeque-mate! ' + (game.turn() === 'w' ? 'Preto venceu!' : 'Branco venceu!'));
+                        } else if (game.in_draw()) {
+                            alert('Empate!');
+                        }
+                    }, 100);
+                    return;
+                }
+                
+                // Se for a vez do robô, faz o movimento
+                if ((playerColor === 'white' && game.turn() === 'b') || 
+                    (playerColor === 'black' && game.turn() === 'w')) {
+                    isEngineThinking = true;
+                    setTimeout(() => {
+                        stockfish.postMessage('position fen ' + game.fen());
+                        stockfish.postMessage('go depth ' + depth);
+                    }, 200);
+                }
+            }
+            
+            function onSnapEnd() {
+                board.position(game.fen());
+            }
+            
+            function makeEngineMove(move) {
+                const result = game.move(move);
+                if (result) {
+                    board.position(game.fen());
+                    moveHistory.push(result);
+                    updateMoveHistory();
+                    updateUndoButton();
+                    
+                    if (game.game_over()) {
+                        setTimeout(() => {
+                            if (game.in_checkmate()) {
+                                alert('Xeque-mate! ' + (game.turn() === 'w' ? 'Preto venceu!' : 'Branco venceu!'));
+                            } else if (game.in_draw()) {
+                                alert('Empate!');
+                            }
+                        }, 100);
+                    }
+                }
+            }
+            
+            function updateEngineStrength() {
+                // Mapeamento de ELO para Skill Level do Stockfish
+                let skillLevel;
+                if (elo < 800) {
+                    // Níveis muito baixos (100-800)
+                    skillLevel = Math.floor(elo / 100);
+                } else if (elo < 2000) {
+                    // Níveis intermediários (800-2000)
+                    skillLevel = 8 + Math.floor((elo - 800) / 150);
+                } else {
+                    // Níveis avançados (2000-4000)
+                    skillLevel = 16 + Math.min(4, Math.floor((elo - 2000) / 500));
+                }
+                
+                skillLevel = Math.max(0, Math.min(20, skillLevel));
+                
+                stockfish.postMessage('setoption name Skill Level value ' + skillLevel);
+                stockfish.postMessage('setoption name Skill Level Maximum value ' + skillLevel);
+                
+                engineOutputElement.textContent += `Nível ajustado para ELO ${elo} (Skill Level ${skillLevel})\n`;
+            }
+            
+            function updateMoveHistory() {
+                moveHistoryElement.innerHTML = '<h3>Histórico de Movimentos</h3>';
+                let html = '<ol>';
+                
+                const history = game.history({verbose: true});
+                for (let i = 0; i < history.length; i++) {
+                    const move = history[i];
+                    if (i % 2 === 0) {
+                        html += `<li><strong>${move.san}</strong>`;
+                        if (i === history.length - 1) html += '</li>';
+                    } else {
+                        html += ` ${move.san}</li>`;
+                    }
+                }
+                
+                html += '</ol>';
+                moveHistoryElement.innerHTML += html;
+                moveHistoryElement.scrollTop = moveHistoryElement.scrollHeight;
+            }
+            
+            function updateUndoButton() {
+                undoMoveBtn.disabled = moveHistory.length === 0;
+            }
+            
+            function giveLesson() {
+                const concepts = [
+                    {
+                        title: "Controle do Centro",
+                        content: "O centro do tabuleiro (casas d4, d5, e4, e5) é a área mais importante. Peças no centro controlam mais casas e têm maior mobilidade. Tente ocupar o centro com seus peões e peças no início do jogo."
+                    },
+                    {
+                        title: "Desenvolvimento das Peças",
+                        content: "No início do jogo, desenvolva suas peças menores (cavalos e bispos) para casas ativas. Evite mover a mesma peça múltiplas vezes nas aberturas, a menos que haja uma boa razão."
+                    },
+                    {
+                        title: "Segurança do Rei",
+                        content: "Faça o roque cedo para proteger seu rei. Depois do roque, evite avançar os peões na frente do seu rei a menos que seja necessário, pois isso pode criar fraquezas."
+                    },
+                    {
+                        title: "Estrutura de Peões",
+                        content: "Peões são a alma do xadrez. Evite peões dobrados (na mesma coluna) e peões isolados (sem peões amigos em colunas adjacentes). Peões passados (sem peões adversários à frente) podem ser muito fortes no final do jogo."
+                    },
+                    {
+                        title: "Táticas Básicas",
+                        content: "Aprenda padrões táticos como garfo, espeto, descoberta, ataque duplo e xeque descoberto. Essas táticas aparecem frequentemente em partidas e podem ganhar material."
+                    },
+                    {
+                        title: "Valor das Peças",
+                        content: "Peão: 1 ponto, Cavalo/Bispo: 3 pontos, Torre: 5 pontos, Dama: 9 pontos. Use esses valores como guia para trocas, mas lembre-se que a posição pode alterar esses valores."
+                    },
+                    {
+                        title: "Final Básico: Rei e Dama vs Rei",
+                        content: "Para dar mate com rei e dama contra rei solitário, primeiro centralize seu rei, depois use a dama para reduzir o espaço do rei adversário até encurralá-lo na borda do tabuleiro."
+                    }
+                ];
+                
+                const currentConcept = concepts[Math.floor(Math.random() * concepts.length)];
+                lessonContentElement.innerHTML = `<h3>${currentConcept.title}</h3><p>${currentConcept.content}</p>`;
+                
+                // Analisa a posição atual para exemplificar
+                engineOutputElement.textContent += `Aula: ${currentConcept.title}\n`;
+                stockfish.postMessage('position fen ' + game.fen());
+                stockfish.postMessage('go depth ' + depth);
+            }
+            
+            // Inicializar o jogo
+            initBoard();
+            initEngine();
+            updateUndoButton();
+            engineOutputElement.textContent = 'Robô de xadrez iniciado. Bom jogo!\n';
+        });
+    </script>
 </body>
 </html>
