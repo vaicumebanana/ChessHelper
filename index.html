@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robô de Xadrez com Stockfish</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="stockfish.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Robô de Xadrez</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="elo">Nível (ELO):</label>
+                <input type="range" id="elo" min="800" max="3000" step="100" value="1500">
+                <span id="elo-value">1500</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="depth">Profundidade:</label>
+                <input type="range" id="depth" min="1" max="20" value="15">
+                <span id="depth-value">15</span>
+            </div>
+            
+            <div class="button-group">
+                <button id="new-game">Novo Jogo</button>
+                <button id="hint">Dica</button>
+                <button id="analyze">Analisar Posição</button>
+                <button id="lesson">Aula</button>
+                <button id="flip-board">Virar Tabuleiro</button>
+            </div>
+        </div>
+        
+        <div id="board" class="chessboard"></div>
+        
+        <div class="info-panel">
+            <div id="move-history" class="move-history"></div>
+            <div id="engine-output" class="engine-output"></div>
+            <div id="lesson-content" class="lesson-content"></div>
+        </div>
+    </div>
+</body>
+</html>
